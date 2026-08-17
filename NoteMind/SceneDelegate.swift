@@ -11,45 +11,135 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    // MARK: - UserDefaults Key
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
-        guard let _ = (scene as? UIWindowScene) else { return }
+    private let appearanceKey =
+        "settings.appearance"
+
+    // MARK: - Scene Connection
+
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions:
+        UIScene.ConnectionOptions
+    ) {
+
+        guard let windowScene =
+                scene as? UIWindowScene
+        else {
+            return
+        }
+
+        // If using a storyboard, the window is
+        // automatically initialized and attached.
+
+        if let window = window {
+
+            applySavedAppearance(
+                to: window
+            )
+
+        } else {
+
+            // Find the window belonging to
+            // this scene.
+
+            if let window =
+                windowScene.windows.first {
+
+                self.window = window
+
+                applySavedAppearance(
+                    to: window
+                )
+            }
+        }
     }
 
-    func sceneDidDisconnect(_ scene: UIScene) {
-        // Called as the scene is being released by the system.
-        // This occurs shortly after the scene enters the background, or when its session is discarded.
-        // Release any resources associated with this scene that can be re-created the next time the scene connects.
-        // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
+    // MARK: - Apply Saved Appearance
+
+    private func applySavedAppearance(
+        to window: UIWindow
+    ) {
+
+        let savedAppearance =
+            UserDefaults.standard.string(
+                forKey: appearanceKey
+            ) ?? "System"
+
+        switch savedAppearance {
+
+        case "Light":
+
+            window.overrideUserInterfaceStyle =
+                .light
+
+        case "Dark":
+
+            window.overrideUserInterfaceStyle =
+                .dark
+
+        default:
+
+            window.overrideUserInterfaceStyle =
+                .unspecified
+        }
     }
 
-    func sceneDidBecomeActive(_ scene: UIScene) {
-        // Called when the scene has moved from an inactive state to an active state.
-        // Use this method to restart any tasks that were paused (or not yet started) when the scene was inactive.
+    // MARK: - Scene Disconnect
+
+    func sceneDidDisconnect(
+        _ scene: UIScene
+    ) {
+
+        // Called as the scene is being released
+        // by the system.
+
+        // The scene may reconnect later.
     }
 
-    func sceneWillResignActive(_ scene: UIScene) {
-        // Called when the scene will move from an active state to an inactive state.
-        // This may occur due to temporary interruptions (ex. an incoming phone call).
+    // MARK: - Scene Became Active
+
+    func sceneDidBecomeActive(
+        _ scene: UIScene
+    ) {
+
+        // Called when the scene becomes active.
     }
 
-    func sceneWillEnterForeground(_ scene: UIScene) {
-        // Called as the scene transitions from the background to the foreground.
-        // Use this method to undo the changes made on entering the background.
+    // MARK: - Scene Will Resign Active
+
+    func sceneWillResignActive(
+        _ scene: UIScene
+    ) {
+
+        // Called when the scene is about to
+        // become inactive.
     }
 
-    func sceneDidEnterBackground(_ scene: UIScene) {
-        // Called as the scene transitions from the foreground to the background.
-        // Use this method to save data, release shared resources, and store enough scene-specific state information
-        // to restore the scene back to its current state.
+    // MARK: - Scene Will Enter Foreground
 
-        // Save changes in the application's managed object context when the application transitions to the background.
-        (UIApplication.shared.delegate as? AppDelegate)?.saveContext()
+    func sceneWillEnterForeground(
+        _ scene: UIScene
+    ) {
+
+        // Called as the scene transitions
+        // from background to foreground.
     }
 
+    // MARK: - Scene Did Enter Background
 
+    func sceneDidEnterBackground(
+        _ scene: UIScene
+    ) {
+
+        // Save changes in the application's
+        // managed object context.
+
+        (
+            UIApplication.shared.delegate
+                as? AppDelegate
+        )?.saveContext()
+    }
 }
-

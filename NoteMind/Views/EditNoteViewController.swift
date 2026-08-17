@@ -1,14 +1,15 @@
 //
-//  AddNoteViewController.swift
+//  EditNoteViewController.swift
 //  NoteMind
 //
-//  Created by VishalD. on 07/08/26.
+//  Created by VishalD. on 08/08/26.
 //
+
 
 import UIKit
 import PhotosUI
 
-class AddNoteViewController: UIViewController,
+class EditNoteViewController: UIViewController,
                               UITextFieldDelegate,
                               UITextViewDelegate {
 
@@ -23,31 +24,24 @@ class AddNoteViewController: UIViewController,
 
     // MARK: - Delegate
 
-    weak var delegate: AddNoteDelegate?
+    weak var delegate: EditNoteDelegate?
 
-    // Category passed from HomeScreen.
-    // If nil, the default category from Settings is used.
+    // MARK: - Note
 
-    var categoryOverride: String?
+    var note: Note?
 
     // MARK: - Properties
 
     private let contentPlaceholder =
         "Start writing your note..."
 
-    private let categoryKey =
-        "settings.defaultCategory"
-
     // Current note type
-
     private var selectedNoteType: NoteType = .text
 
-    // Selected photo
-
+    // Photo attached to the note
     private var selectedPhotoData: Data?
 
     // Checklist items
-
     private var checklistItems: [ChecklistItem] = []
 
     // MARK: - View Life Cycle
@@ -59,6 +53,7 @@ class AddNoteViewController: UIViewController,
         setupContentTextView()
         setupToolbarButtons()
         setupKeyboardDismissal()
+        loadNote()
         updateSaveButton()
     }
 
@@ -67,9 +62,6 @@ class AddNoteViewController: UIViewController,
     private func setupTitleField() {
 
         titleTextField.delegate = self
-
-        titleTextField.placeholder =
-            "Note title"
 
         titleTextField.clearButtonMode =
             .whileEditing
@@ -94,12 +86,6 @@ class AddNoteViewController: UIViewController,
             UIFont.preferredFont(
                 forTextStyle: .body
             )
-
-        contentTextView.textColor =
-            .secondaryLabel
-
-        contentTextView.text =
-            contentPlaceholder
 
         contentTextView.backgroundColor =
             .clear
@@ -127,15 +113,72 @@ class AddNoteViewController: UIViewController,
 
         photoButton?.tintColor =
             .systemBlue
+    }
 
-        textFormatButton?.accessibilityLabel =
-            "Text formatting"
+    // MARK: - Load Existing Note
 
-        checklistButton?.accessibilityLabel =
-            "Add checklist item"
+    private func loadNote() {
 
-        photoButton?.accessibilityLabel =
-            "Add photo"
+        guard let note = note else {
+            return
+        }
+
+        // Load title
+
+        titleTextField.text =
+            note.title
+
+        // Restore note type
+
+        selectedNoteType =
+            note.noteType
+
+        // Restore checklist items
+
+        checklistItems =
+            note.checklistItems
+
+        // Restore photo
+
+        selectedPhotoData =
+            note.photoData
+
+        // Restore text content
+
+        let trimmedContent =
+            note.content.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        if trimmedContent.isEmpty {
+
+            contentTextView.text =
+                contentPlaceholder
+
+            contentTextView.textColor =
+                .secondaryLabel
+
+        } else {
+
+            contentTextView.text =
+                note.content
+
+            contentTextView.textColor =
+                .label
+        }
+
+        // Restore photo if this is a photo note
+
+        if note.noteType == .photo,
+           let photoData = note.photoData,
+           let image = UIImage(
+                data: photoData
+           ) {
+
+            insertImageAtEnd(
+                image
+            )
+        }
     }
 
     // MARK: - Save Button
@@ -246,8 +289,6 @@ class AddNoteViewController: UIViewController,
                 preferredStyle: .actionSheet
             )
 
-        // MARK: Bold
-
         let boldAction =
             UIAlertAction(
                 title: "Bold",
@@ -259,8 +300,6 @@ class AddNoteViewController: UIViewController,
                 )
             }
 
-        // MARK: Italic
-
         let italicAction =
             UIAlertAction(
                 title: "Italic",
@@ -271,8 +310,6 @@ class AddNoteViewController: UIViewController,
                     .traitItalic
                 )
             }
-
-        // MARK: Underline
 
         let underlineAction =
             UIAlertAction(
@@ -345,7 +382,7 @@ class AddNoteViewController: UIViewController,
 
             let currentFont =
                 value as? UIFont ??
-                contentTextView.font ??
+                self.contentTextView.font ??
                 UIFont.preferredFont(
                     forTextStyle: .body
                 )
@@ -389,9 +426,6 @@ class AddNoteViewController: UIViewController,
 
         contentTextView.selectedRange =
             selectedRange
-
-        selectedNoteType =
-            .text
     }
 
     // MARK: - Underline
@@ -422,7 +456,8 @@ class AddNoteViewController: UIViewController,
             .underlineStyle,
             value:
                 NSUnderlineStyle.single.rawValue,
-            range: selectedRange
+            range:
+                selectedRange
         )
 
         contentTextView.attributedText =
@@ -430,9 +465,6 @@ class AddNoteViewController: UIViewController,
 
         contentTextView.selectedRange =
             selectedRange
-
-        selectedNoteType =
-            .text
     }
 
     // MARK: - Checklist
@@ -441,7 +473,7 @@ class AddNoteViewController: UIViewController,
         _ sender: UIButton
     ) {
 
-        view.endEditing(true)
+        contentTextView.becomeFirstResponder()
 
         selectedNoteType =
             .checklist
@@ -451,47 +483,16 @@ class AddNoteViewController: UIViewController,
 
     private func insertChecklistItem() {
 
-        // Remove placeholder if necessary
-
-        if contentTextView.text ==
-            contentPlaceholder {
-
-            contentTextView.text = ""
-
-            contentTextView.textColor =
-                .label
-        }
-
-        let checkbox =
+        let checklistText =
             "☐ "
 
-        let currentText =
-            contentTextView.text ?? ""
+        let selectedRange =
+            contentTextView.selectedRange
 
-        // Always put a new checklist item
-        // on a new line if content already exists.
-
-        let needsNewLine =
-            !currentText.isEmpty &&
-            !currentText.hasSuffix("\n")
-
-        let insertionText =
-            (needsNewLine ? "\n" : "") +
-            checkbox
-
-        let insertionLocation =
-            contentTextView.selectedRange.location
-
-        let mutableText =
+        let attributedText =
             NSMutableAttributedString(
                 attributedString:
                     contentTextView.attributedText
-            )
-
-        let safeLocation =
-            min(
-                insertionLocation,
-                mutableText.length
             )
 
         let font =
@@ -500,104 +501,39 @@ class AddNoteViewController: UIViewController,
                 forTextStyle: .body
             )
 
-        mutableText.insert(
+        attributedText.insert(
             NSAttributedString(
-                string: insertionText,
+                string: checklistText,
                 attributes: [
                     .font: font,
                     .foregroundColor:
                         UIColor.label
                 ]
             ),
-            at: safeLocation
+            at:
+                selectedRange.location
         )
 
         contentTextView.attributedText =
-            mutableText
-
-        let newCursorPosition =
-            safeLocation +
-            insertionText.count
+            attributedText
 
         contentTextView.selectedRange =
             NSRange(
                 location:
-                    newCursorPosition,
+                    selectedRange.location +
+                    checklistText.count,
                 length: 0
             )
 
-        contentTextView.becomeFirstResponder()
-
-        updateChecklistItemsFromText()
-    }
-
-    // MARK: - Build Checklist Model
-
-    private func updateChecklistItemsFromText() {
-
-        guard selectedNoteType ==
-                .checklist
-        else {
-            return
-        }
-
-        let text =
-            getContent()
-
-        let lines =
-            text.components(
-                separatedBy: .newlines
+        // Add a real checklist item
+        let item =
+            ChecklistItem(
+                text: ""
             )
 
-        var items:
-            [ChecklistItem] = []
-
-        for line in lines {
-
-            var itemText =
-                line.trimmingCharacters(
-                    in: .whitespaces
-                )
-
-            guard !itemText.isEmpty
-            else {
-                continue
-            }
-
-            if itemText.hasPrefix("☐ ") {
-
-                itemText =
-                    String(
-                        itemText.dropFirst(2)
-                    )
-
-            } else if itemText.hasPrefix("☑ ") {
-
-                itemText =
-                    String(
-                        itemText.dropFirst(2)
-                    )
-            }
-
-            itemText =
-                itemText.trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                )
-
-            guard !itemText.isEmpty
-            else {
-                continue
-            }
-
-            items.append(
-                ChecklistItem(
-                    text: itemText
-                )
-            )
-        }
-
-        checklistItems =
-            items
+        checklistItems.append(
+            item
+        )
     }
 
     // MARK: - Photo
@@ -605,8 +541,6 @@ class AddNoteViewController: UIViewController,
     @IBAction func photoButtonPressed(
         _ sender: UIButton
     ) {
-
-        view.endEditing(true)
 
         var configuration =
             PHPickerConfiguration(
@@ -635,51 +569,13 @@ class AddNoteViewController: UIViewController,
         )
     }
 
-    // MARK: - Default Category
-
-    private func getDefaultCategory() -> String {
-
-        let savedCategory =
-            UserDefaults.standard.string(
-                forKey: categoryKey
-            )
-
-        let validCategories = [
-            "Personal",
-            "Work",
-            "Study",
-            "Ideas"
-        ]
-
-        if let savedCategory,
-           validCategories.contains(
-                savedCategory
-           ) {
-
-            return savedCategory
-        }
-
-        return "Personal"
-    }
-
-    // MARK: - Get Content
-
-    private func getContent() -> String {
-
-        guard contentTextView.text !=
-                contentPlaceholder
-        else {
-            return ""
-        }
-
-        return contentTextView.text ?? ""
-    }
-
     // MARK: - Save Note
 
     @IBAction func saveButtonPressed(
         _ sender: UIBarButtonItem
     ) {
+
+        // Validate title
 
         guard let title =
                 titleTextField.text?
@@ -694,28 +590,28 @@ class AddNoteViewController: UIViewController,
             return
         }
 
-        let content =
-            getContent()
+        // Make sure an existing note is available
 
-        // If this is a checklist,
-        // rebuild the checklist model
-        // from the actual text.
-
-        if selectedNoteType ==
-            .checklist {
-
-            updateChecklistItemsFromText()
+        guard let oldNote = note else {
+            return
         }
 
-        // Use the category passed from HomeScreen
-        // when creating a note from a category.
-        // Otherwise use the default category.
+        // Get content
 
-        let category =
-            categoryOverride ??
-            getDefaultCategory()
+        let content: String
 
-        // Determine final note type.
+        if contentTextView.text ==
+            contentPlaceholder {
+
+            content = ""
+
+        } else {
+
+            content =
+                contentTextView.text ?? ""
+        }
+
+        // Determine final note type
 
         let finalNoteType: NoteType
 
@@ -724,8 +620,7 @@ class AddNoteViewController: UIViewController,
             finalNoteType =
                 .photo
 
-        } else if selectedNoteType ==
-                    .checklist {
+        } else if !checklistItems.isEmpty {
 
             finalNoteType =
                 .checklist
@@ -733,24 +628,48 @@ class AddNoteViewController: UIViewController,
         } else {
 
             finalNoteType =
-                .text
+                selectedNoteType
         }
 
-        let note =
+        // Create updated note
+
+        let updatedNote =
             Note(
-                title: title,
-                content: content,
-                date: Date(),
-                isFavourite: false,
-                category: category,
-                noteType: finalNoteType,
-                photoData: selectedPhotoData,
-                checklistItems: checklistItems
+                id:
+                    oldNote.id,
+
+                title:
+                    title,
+
+                content:
+                    content,
+
+                date:
+                    Date(),
+
+                isFavourite:
+                    oldNote.isFavourite,
+
+                category:
+                    oldNote.category,
+
+                noteType:
+                    finalNoteType,
+
+                photoData:
+                    selectedPhotoData,
+
+                checklistItems:
+                    checklistItems
             )
 
-        delegate?.didAddNote(
-            note
+        // Send updated note back
+
+        delegate?.didUpdateNote(
+            updatedNote
         )
+
+        // Return to previous screen
 
         navigationController?.popViewController(
             animated: true
@@ -787,7 +706,7 @@ class AddNoteViewController: UIViewController,
 
 // MARK: - PHPicker Delegate
 
-extension AddNoteViewController:
+extension EditNoteViewController:
     PHPickerViewControllerDelegate {
 
     func picker(
@@ -830,15 +749,19 @@ extension AddNoteViewController:
 
             DispatchQueue.main.async {
 
-                // Store actual image data
+                // Save photo data
 
                 self.selectedPhotoData =
                     image.jpegData(
                         compressionQuality: 0.8
                     )
 
+                // Change note type
+
                 self.selectedNoteType =
                     .photo
+
+                // Display image
 
                 self.insertImage(
                     image
@@ -847,22 +770,11 @@ extension AddNoteViewController:
         }
     }
 
-    // MARK: - Insert Image
+    // MARK: - Insert New Image
 
     private func insertImage(
         _ image: UIImage
     ) {
-
-        // Remove placeholder
-
-        if contentTextView.text ==
-            contentPlaceholder {
-
-            contentTextView.text = ""
-
-            contentTextView.textColor =
-                .label
-        }
 
         let textAttachment =
             NSTextAttachment()
@@ -906,14 +818,12 @@ extension AddNoteViewController:
             )
 
         let location =
-            min(
-                contentTextView.selectedRange.location,
-                mutableText.length
-            )
+            contentTextView.selectedRange.location
 
         mutableText.insert(
             imageString,
-            at: location
+            at:
+                location
         )
 
         mutableText.insert(
@@ -936,7 +846,76 @@ extension AddNoteViewController:
                     1,
                 length: 0
             )
+    }
 
-        contentTextView.becomeFirstResponder()
+    // MARK: - Insert Existing Image
+
+    private func insertImageAtEnd(
+        _ image: UIImage
+    ) {
+
+        let textAttachment =
+            NSTextAttachment()
+
+        textAttachment.image =
+            image
+
+        let maxWidth =
+            contentTextView.bounds.width -
+            32
+
+        if image.size.width > maxWidth {
+
+            let scale =
+                maxWidth /
+                image.size.width
+
+            textAttachment.bounds =
+                CGRect(
+                    x: 0,
+                    y: 0,
+                    width:
+                        image.size.width *
+                        scale,
+                    height:
+                        image.size.height *
+                        scale
+                )
+        }
+
+        let imageString =
+            NSAttributedString(
+                attachment:
+                    textAttachment
+            )
+
+        let mutableText =
+            NSMutableAttributedString(
+                attributedString:
+                    contentTextView.attributedText
+            )
+
+        if mutableText.length > 0 {
+
+            mutableText.append(
+                NSAttributedString(
+                    string: "\n\n"
+                )
+            )
+        }
+
+        mutableText.append(
+            imageString
+        )
+
+        contentTextView.attributedText =
+            mutableText
+
+        contentTextView.selectedRange =
+            NSRange(
+                location:
+                    mutableText.length,
+                length: 0
+            )
     }
 }
