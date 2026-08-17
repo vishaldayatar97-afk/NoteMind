@@ -1,5 +1,5 @@
 {
-  "originHash" : "62a9eb70a2b0ef18b71ea36d4be17a2a43e3324d0ab5818ee485d1f5a90b6ded",
+  "originHash" : "a1569f9895aa2be8e24832f98525d5da4eb90b5d158a82691c15b47eb72a13d7",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -20,9 +20,9 @@
       }
     },
     {
-      "identity" : "firebase-ios-sdk?utm_source=chatgpt.com",
+      "identity" : "firebase-ios-sdk",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/firebase/firebase-ios-sdk?utm_source=chatgpt.com",
+      "location" : "https://github.com/firebase/firebase-ios-sdk.git",
       "state" : {
         "revision" : "33a468adfdb75b53f05a37e7c886ca7c962b5c17",
         "version" : "12.17.0"
